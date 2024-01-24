@@ -50,11 +50,26 @@ android {
 }
 
 dependencies {
+    implementation(files("libs\\sunmiscan.jar"))
+    val camerax_version = "1.2.2"
+    implementation("androidx.camera:camera-core:$camerax_version")
+    implementation("androidx.camera:camera-camera2:$camerax_version")
+    implementation("androidx.camera:camera-lifecycle:$camerax_version")
+    implementation("androidx.camera:camera-video:$camerax_version")
+
+    implementation("androidx.camera:camera-view:$camerax_version")
+    implementation("androidx.camera:camera-extensions:$camerax_version")
+
+    implementation("com.google.mlkit:vision-common:17.3.0")
+    implementation("com.google.android.gms:play-services-mlkit-text-recognition-common:19.0.0")
+    implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.0")
+
+    implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.legacy:legacy-support-v4:1.0.0")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.7.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
+    implementation("androidx.activity:activity-ktx:1.3.1")
     val fragment_version = "1.6.2"
-
     implementation("androidx.navigation:navigation-compose:2.7.6")
     implementation("androidx.fragment:fragment-ktx:$fragment_version")
     implementation("com.sunmi:printerx:1.0.15")

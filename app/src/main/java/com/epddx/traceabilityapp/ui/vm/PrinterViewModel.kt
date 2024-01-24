@@ -34,12 +34,13 @@ class PrinterViewModel() : ViewModel() {
 
     private var count = MutableStateFlow("1")
 
-    fun initPrinter(context: Context) {
+    fun initPrinter(context: Context,onGotPrinter: () -> Unit) {
         PrinterSdk.getInstance().getPrinter(context, object : PrinterSdk.PrinterListen {
 
             override fun onDefPrinter(printer: PrinterSdk.Printer?) {
                 if (selectPrinter == null) {
                     selectPrinter = printer
+                    onGotPrinter()
                 }
             }
 
@@ -56,11 +57,13 @@ class PrinterViewModel() : ViewModel() {
 
     fun showPrinter() {
         this.printer = selectPrinter
-        val printer: Printer = this.printer!!
-        _printerStatus.value = printer.queryApi().status.name
-        _printerName.value = printer.queryApi().getInfo(PrinterInfo.NAME)
-        _printerType.value = printer.queryApi().getInfo(PrinterInfo.TYPE)
-        _printerPaper.value = printer.queryApi().getInfo(PrinterInfo.PAPER)
+        if (this.printer != null) {
+            val printer: Printer = this.printer!!
+            _printerStatus.value = printer.queryApi().status.name
+            _printerName.value = printer.queryApi().getInfo(PrinterInfo.NAME)
+            _printerType.value = printer.queryApi().getInfo(PrinterInfo.TYPE)
+            _printerPaper.value = printer.queryApi().getInfo(PrinterInfo.PAPER)
+        }
     }
 
     fun changeText() {
