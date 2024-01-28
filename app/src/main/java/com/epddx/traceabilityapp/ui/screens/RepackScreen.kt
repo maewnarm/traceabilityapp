@@ -13,6 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -23,17 +26,20 @@ import com.epddx.traceabilityapp.ui.utils.OnLifecycleEvent
 import com.epddx.traceabilityapp.ui.vm.PrinterViewModel
 import kotlinx.coroutines.delay
 
-var printerViewModel: PrinterViewModel = PrinterViewModel()
+var printerViewModelLocal: PrinterViewModel = PrinterViewModel()
 
 @Composable
 fun RepackScreen(
     modifier: Modifier = Modifier,
-    viewModel: PrinterViewModel = viewModel(),
+    onCallScanner: () -> Unit = {},
+    printerViewModel: PrinterViewModel = viewModel(),
 ) {
 
-    printerViewModel = viewModel
+    printerViewModelLocal = printerViewModel
     val localContext: Context = LocalContext.current
     val printerStatus by printerViewModel.printerStatus.collectAsState()
+
+    var showScanner by remember { mutableStateOf(false) }
 
     OnLifecycleEvent { _, event ->
         when (event) {
@@ -50,24 +56,52 @@ fun RepackScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(modifier = Modifier, verticalAlignment = Alignment.CenterVertically) {
-            Button(onClick = { getPrinter() }, enabled = printerStatus !== "READY") {
-                Text("Get Printer")
+        if (showScanner) {
+            ScannerScreen(
+                onBack = { showScanner = false },
+                startScan = true,
+                printerViewModel = printerViewModel
+            )
+        } else {
+            Row(modifier = Modifier, verticalAlignment = Alignment.CenterVertically) {
+                Button(onClick = { getPrinter() }, enabled = printerStatus !== "READY") {
+                    Text("Get Printer")
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(text = if (printerStatus != "") printerStatus else "NOT READY")
             }
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(text = if (printerStatus != "") printerStatus else "NOT READY")
-        }
-        Button(onClick = { printerViewModel.testPrint() }) {
-            Text("Test Print")
+            if (printerViewModel.getText() != "") {
+                Text(text = "Text result: ${printerViewModel.getText()}")
+            }
+            Row(modifier = Modifier) {
+                Button(onClick = { showScanner = true }) {
+                    Text("Scan QR")
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(onClick = { printSetText() }) {
+                    Text("Print")
+                }
+            }
+            Button(onClick = { printerViewModel.testPrint() }) {
+                Text("Test Print")
+            }
         }
     }
 }
 
 fun initPrinter(context: Context) {
     Log.d("REPACK", "initPrinter start")
-    printerViewModel.initPrinter(context, ::getPrinter)
+    printerViewModelLocal.initPrinter(context, ::getPrinter)
 }
 
 fun getPrinter() {
-    printerViewModel.showPrinter()
+    printerViewModelLocal.showPrinter()
+}
+
+fun printSetText() {
+    Log.d("REPACK", "getText: ${printerViewModelLocal.getText()}")
+    if (printerViewModelLocal.getText() != "") {
+        printerViewModelLocal.printerTextAsQR()
+        printerViewModelLocal.setText("")
+    }
 }

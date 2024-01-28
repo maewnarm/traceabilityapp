@@ -50,7 +50,7 @@ android {
 }
 
 dependencies {
-    implementation(files("libs\\sunmiscan.jar"))
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
     val camerax_version = "1.2.2"
     implementation("androidx.camera:camera-core:$camerax_version")
     implementation("androidx.camera:camera-camera2:$camerax_version")
@@ -60,7 +60,9 @@ dependencies {
     implementation("androidx.camera:camera-view:$camerax_version")
     implementation("androidx.camera:camera-extensions:$camerax_version")
 
+    implementation("androidx.camera:camera-mlkit-vision:1.4.0-alpha03")
     implementation("com.google.mlkit:vision-common:17.3.0")
+    implementation("com.google.mlkit:barcode-scanning:17.2.0")
     implementation("com.google.android.gms:play-services-mlkit-text-recognition-common:19.0.0")
     implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.0")
 

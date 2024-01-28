@@ -10,6 +10,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -50,6 +51,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -60,19 +62,26 @@ import com.epddx.traceabilityapp.ui.screens.HomeScreen
 import com.epddx.traceabilityapp.ui.screens.RepackScreen
 import com.epddx.traceabilityapp.ui.screens.ScannerScreen
 import com.epddx.traceabilityapp.ui.theme.TraceabilityAppTheme
+import com.epddx.traceabilityapp.ui.vm.PrinterViewModel
 import kotlinx.coroutines.launch
 
 
-class MainActivity : ComponentActivity() {
-    private val PERMISSION_REQUEST_CODE = 200;
-    var allGranted = false
+class MainActivity : AppCompatActivity() {
+    companion object {
+        private const val TAG = "CameraX-MLKit"
+        private const val REQUEST_CODE_PERMISSIONS = 10
+        private val REQUIRED_PERMISSIONS =
+            mutableListOf(
+                android.Manifest.permission.CAMERA
+            ).toTypedArray()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        checkPermission()
+//        checkPermission()
         setContent {
             TraceabilityAppTheme {
-                if (allGranted) {
+                if (allPermissionsGranted()) {
                     MyApp(modifier = Modifier.fillMaxSize(), context = this)
                 } else {
                     requestPermission()
@@ -81,26 +90,36 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    val requestPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-            if (isGranted) {
-                allGranted = true
-            } else {
+    private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
+        ContextCompat.checkSelfPermission(
+            baseContext, it
+        ) == PackageManager.PERMISSION_GRANTED
+    }
 
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_CODE_PERMISSIONS) {
+            if (allPermissionsGranted()) {
+                recreate()
+            } else {
+                Toast.makeText(
+                    this,
+                    "Permissions not granted by the user.",
+                    Toast.LENGTH_SHORT
+                ).show()
+                finish()
             }
         }
-
-    private fun checkPermission() {
-        allGranted = ContextCompat.checkSelfPermission(
-            this,
-            android.Manifest.permission.CAMERA
-        ) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun requestPermission() {
         ActivityCompat.requestPermissions(
-            this, arrayOf<String>(android.Manifest.permission.CAMERA),
-            PERMISSION_REQUEST_CODE
+            this, mutableListOf(android.Manifest.permission.CAMERA).toTypedArray(),
+            REQUEST_CODE_PERMISSIONS
         )
     }
 }
@@ -115,6 +134,9 @@ fun MyApp(modifier: Modifier = Modifier, context: Context) {
     val currentScreen = tabRowScreens.find { it.route == currentDestination?.route } ?: Home
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+
+    val printerViewModel: PrinterViewModel = viewModel()
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -143,7 +165,14 @@ fun MyApp(modifier: Modifier = Modifier, context: Context) {
                             }
                         },
                         selected = currentScreen == screen,
-                        onClick = { navController.navigateSingleTopTo(screen.route) },
+                        onClick = {
+                            navController.navigateSingleTopTo(screen.route)
+                            scope.launch {
+                                drawerState.apply {
+                                    close()
+                                }
+                            }
+                        },
                         modifier = Modifier.height(40.dp)
                     )
                 }
@@ -206,10 +235,15 @@ fun MyApp(modifier: Modifier = Modifier, context: Context) {
                     HomeScreen()
                 }
                 composable(route = Repack.route) {
-                    RepackScreen()
+                    RepackScreen(
+                        onCallScanner = { navController.navigate(Scanner.route) },
+                        printerViewModel = printerViewModel,
+                    )
                 }
                 composable(route = Scanner.route) {
-                    ScannerScreen()
+                    ScannerScreen(onBack = {
+                        navController.popBackStack()
+                    }, printerViewModel = printerViewModel, startScan = true)
                 }
             }
         }
